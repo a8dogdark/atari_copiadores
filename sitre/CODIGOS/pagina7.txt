@@ -1,0 +1,15 @@
+	ORG $700
+INICIO 
+	.BYTE $55,$55,$fC
+	.BYTE 0,1
+	.WORD INICIO
+	.WORD $0400
+	CLC
+	RTS
+	.sb "COPIADOR ULTRA DOGDARK 2019"
+	.SB "PARA SISTEMAS 800 - 256K   "
+	.SB "                    "
+	.SB "                    "
+	.SB "            "
+
+	
