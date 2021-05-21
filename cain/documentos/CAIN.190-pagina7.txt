@@ -1,0 +1,17 @@
+;  BOOT Block
+;  1 record
+;  start = $700
+;  exec  = $400 (buffer)
+;  Apaga la pantalla y pone flag de cold reset
+
+;  BIOS llamará a este código y también llamará a $400
+
+	BYTE 0, 1, 0, 7, 0, 4
+	LDA #0
+	STA 559
+	STA 54272
+	STA 580
+	CLC
+	RTS
+
+	

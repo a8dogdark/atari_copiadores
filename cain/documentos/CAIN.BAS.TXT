@@ -1,0 +1,33 @@
+180  Copia ROM en RAM
+190  Escribe 1 registro de boot record rellenando con bytes al azar.  El header dice: 1 registro, inicio en $700, ejecución en $400 (buffer)
+260  Escribe 2 registro de boot record que es en realidad un EOF.
+270  ... continuación del registro
+272  Escribe [85, 85, nombre del programa] a partir de $9000 (36864)
+273  ... continuacion: Escribe contador (3 bytes) 
+275  Escribe baud rate en 60323 (lo) y 60328 (hi).  Es un patch al codigo 60292 ($EB84) CASENT
+     Llama a 2000 para escribir lo que está en $8000 (32768).  Largo = 722 bytes: 32768-33490
+278  Genera una pausa 2x y luego llama a 2000 para escribir : src = $9000, len = 25  (85, 85, nombre, contador)
+     Termina con una pausa 3x
+
+285  Calcula la posicion (88) + 114.  El resultado lo escribe parchando los vectores 8405 y 8408 del codigo cargado
+     desde CAIN.BIN
+295  Ejecuta el codigo de CAIN.BIN partiendo por 8192 ($2000), pasando por parámetro el largo de los datos a grabar
+     De aquí se desprende que lo calculado en 285 es la posición en pantalla del contador (34, 2),
+     que se inicializa en 000 y va contando los bloques a medida que se van grabando.  
+     CAIN.BIN es el código que se encarga de grabar en cassette
+
+330  Toma el nombre ingresado, lo convierte de string a byte[] y lo deja centrado en NIM$
+
+1000 Rutina para leer desde disco en bancos de memoria del 130 XE
+     El largo de cada banco lo deja en BNK(banco)
+     El largo total leido lo deja en la variable L
+
+2000 Escribe en cassete desde SS/SR con un largo de XL/XH
+
+3000 Rutina para leer y mostrar el directorio
+
+4000 Escribe una rutina ASM en 1536 (CAIN.4020.txt)
+
+5000 Limpia texto de NOM$,  Si es "corazon" lo convierte en espacio
+
+

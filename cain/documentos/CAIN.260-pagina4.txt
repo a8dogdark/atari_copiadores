@@ -1,0 +1,48 @@
+; X=USR(...)
+
+	PLA
+	LDA #254
+	STA 64963
+	RTS
+
+; Codigo del LOADER
+; Codigo que se escribe en cassette.  Esto quedará en el buffer y se ejecutará
+; El loader simplemente carga 722 bytes en la ubicación $6FE
+; Por la estructura del bloque, $6FE y $6FF tendrán 85, 85, y el codigo
+; importante estará a partir de $700 en adelante.
+; Al terminar la carga se ejecuta el codigo a partir de $7BC (1980)
+; El codigo cargado está en CAIN.STR.TXT
+
+
+	LDX #11
+COPY:
+	LDA descriptor, X  ; copia el descriptor en la tabla de IO de la BIOS
+	STA $0300, X
+	DEX
+	BPL COPY
+	JSR 58457          ; llama a la BIOS para que ejecute el IO
+	BPL NOJMP          ; retorna positivo si el IO fue exitoso
+	JMP 58487
+NOJMP:
+	JMP $07BC
+descriptor:
+	BYTE 96, 0, 82, 64, 254, 6, 35, 0, 210, 2, 0, 128
+
+; 96     = cassette
+;  0     = unidad (solo se requiere para discos o puertos seriales)
+; 82     = load block
+; 64     = read data
+; 245, 6 = direccion de memoria para la transferencia ($6FE)
+; 35     = timeout en segundos
+;  0     = no se usa
+; 210, 2 = largo del bloque a leer (722 bytes)
+; 0, 128 = no lo recuerdo
+
+
+	BYTE "            franco catrin FRANCO CATRIN         "
+	BYTE 38, 50, 33, 46, 35, 47, 0, 35, 33, 52, 50, 41, 46
+	BYTE 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	BYTE 38, 50, 33, 46, 35, 47, 0, 35, 33, 52, 50, 41, 46
+	BYTE 0, 0, 0, 0, 0, 0, 0, 0
+
+

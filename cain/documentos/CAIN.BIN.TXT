@@ -1,0 +1,207 @@
+
+; Codigo usado por CAIN para grabar un XEX en cassette
+; Los bloques son de 221 bytes cada uno
+; Por parámetro se recibe el largo total de bytes a grabar
+; Cada bloque está en $2400, el formato es : 85, 85, blockno, data
+; blockno = 255 indica EOF.  Ultimo byte = largo de ese bloque
+;
+; El formato ejecutable es :   block[] donde block = [255, 255, start, len, data]
+; Al terminar cada bloque, se ejecuta el vector $226 si es que hay algo ahí
+
+
+buffer   = $2400
+writepos = 61
+buflen   = 62
+blockno  = 207
+bufptr   = 205
+firstpage = 64
+lastpage  = 128
+datalen   = 203
+blockstart = $23FA
+blockend   = $23FC
+delayflag  = $23FF
+
+8192
+	PLA
+	LDA #220
+	STA 54017
+	PLA
+	STA datalen+1
+	PLA
+	STA datalen
+8204
+	LDA #0
+	STA writepos
+	STA delayflag
+	LDA #217
+	STA buflen
+	LDA #1
+	STA blockno
+	LDA #0
+	STA $bufptr
+	LDA #firstpage
+	STA $bufptr+1
+	LDA #85     ; Write carrier
+	STA $buffer
+	STA $buffer+1
+; Punto de partida de grabación de bloque
+next_exe_block:
+	LDY #0
+	LDA ($bufptr),Y
+	STA $blockstart
+	JSR writebyte
+	LDA ($bufptr),Y
+	STA $blockstart+1
+	JSR writebyte
+; Busca hasta encontrar una dirección que no sea $FFFF
+	LDA $blockstart
+	AND $blockstart+1
+	CMP #255
+	BEQ next_exe_block
+; Encontró el inicio de un bloque
+	LDY #0
+	LDA ($bufptr),Y
+	STA $blockend
+	JSR writebyte
+	LDY #0
+	LDA ($bufptr),Y
+	STA $blockend+1
+	JSR writebyte
+putbyte:                  ; 8285
+	LDY #0
+	LDA ($bufptr),Y
+	JSR writebyte
+	LDA $blockstart
+	CMP #226
+	BNE not_exec_block
+	LDA $blockstart+1
+	CMP #2
+	BNE not_exec_block
+; Encontró un bloque ejecutable.  Alarga pausa?
+	LDA #240
+	STA delayflag
+not_exec_block:
+	LDA $blockstart
+	CMP $blockend
+	BNE not_end_of_block
+	LDA $blockstart+1
+	CMP $blockend+1
+; Esto quedó así por ser un parche seguramente.  Problemas de branch de más de 128 bytes de distancia
+not_end_of_block:
+	NOP
+	NOP
+	JMP 8490
+
+writebyte:
+	PHA
+	INC $bufptr
+	BNE not_lastpage
+	INC $bufptr+1
+	LDA $bufptr+1       ; Revisa si llegamos al final de un banco de 130XE
+	CMP #lastpage
+	BNE not_lastpage
+	LDA #fistpage
+	STA $bufptr+1
+	LDA 54017           ; Cambia de banco
+	CLC
+	ADC #4
+	STA 54017
+not_lastpage:
+	DEC datalen         ; datalen--
+	LDA datalen         ; Si llegamos al final, salta a escribir el EOF
+	CMP #255
+	BNE notlast
+	DEC datalen+1
+	LDA datalen+1
+	CMP #255
+	BNE notlast
+	PLA
+	JMP write_eof
+notlast:
+	PLA
+	LDX writepos
+	INC writepos
+	STA $buffer+3,X
+	CPX buflen
+	BEQ buffercomplete
+	RTS
+buffercomplete:             ; Se llenó el buffer.  Escribe el numero del bloque y pide grabar
+	LDA blockno
+	STA $buffer+2
+	JSR writeblock
+	BPL updateCounter
+	PLA
+	PLA
+	RTS
+; Aqui actualiza el contador en pantalla
+; La ubicación del contador es parchado desde CAIN.BAS (lineas 285 y 295)
+
+updateCounter:
+	LDX #2
+NEXTDIGIT:
+	DEC $0,X  ; SCRL/SCRH
+	LDA $0,X  ; SCRL/SCRH
+	CMP #'0'-1
+	BNE NOTZERO
+	LDA #'9'
+	STA $0,x  ; SCRL/SCRH
+	DEX
+	BPL NEXTDIGIT
+NOTZERO:
+	LDA #0            ; Reinicia buffer
+	STA writepos
+	INC blockno       ; Incrementa contador de bloques
+	LDA delayFlag     ; Revisa si es que hay que hacer algun delay especial en IRG
+	BEQ nodelay
+	LDA #52           ; Deja avanzar la cinta por 4 segundos para dar tiempo de
+	STA 54018         ; detener y reiniciar el motor sin perder datos
+	LDA #240          ; Se usa al ejecutar un bloque
+	ADC 20
+sleep:
+	CMP 20
+	BNE sleep
+nodelay:
+	LDA #0
+	STA delayFlag
+	RTS
+write_eof:                 ;  8452
+	PLA
+	PLA
+	LDA #255           ; Numero de bloque = 255 indica EOF
+	STA $buffer+2
+	LDA writepos       ; Ultima posicion del buffer indica el largo de registro a considerar
+	STA $buffer+220
+writeblock:
+	LDX #11
+iocopy:
+	LDA IOREG,X
+	STA $300,X
+	DEX
+	BPL iocopy
+	JMP 58457
+
+; Cada registro se graba desde la ubicacion 0, 36 ($2400) el largo es siempre 221 bytes
+IOREG: 	byte 96, 0, 87, 128, 0, 36, 35, 0, 221, 0, 0, 128
+
+8490:   
+	BNE nojump
+	JMP next_exe_block
+nojump:
+	INC blockstart
+
+	BNE nopage
+	INC blockstart+1
+nopage:
+	JMP putbyte
+
+
+
+
+
+		
+
+
+
+	
+
+

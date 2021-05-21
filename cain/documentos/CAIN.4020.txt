@@ -1,0 +1,9 @@
+
+	PLA
+	LDA #12
+	STA 546
+	LDA #6
+	STA 547
+	LDA #0
+	STA 77
+	JMP 49378

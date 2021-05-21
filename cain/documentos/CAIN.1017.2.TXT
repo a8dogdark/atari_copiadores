@@ -1,0 +1,21 @@
+
+; Lee hasta $400 bytes en la posicion $400 (banco de memoria 130XE)
+; El resultado lo devuelve a BASIC
+
+	PLA
+	LDX #16
+	LDA #7
+	STA $342, X
+	LDA #0
+	STA $344, X
+	STA $348, X
+	LDA #64
+	STA $345, X
+	STA $349, X
+	JSR 58454
+	LDA $348, X
+	STA 212
+	LDA $349, X
+	STA 213
+	RTS
+
